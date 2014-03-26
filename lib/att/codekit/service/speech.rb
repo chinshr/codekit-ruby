@@ -90,33 +90,40 @@ module Att
         #
         # @return (see speechToText)
         def customSpeechToText(audio_file, dictionary, grammar, opts={})
-          context = (opts[:context] || "GenericHints")
-          grammar_type = (opts[:grammar] || "x-grammar")
-          xArgs = (opts[:xargs] || "")
-          x_arg_val = URI.escape(xArgs)
+          context                 = (opts[:context] || "GenericHints")
+          grammar_type            = (opts[:grammar] || "x-grammar")
+          xArgs                   = (opts[:xargs] || "")
+          x_arg_val               = URI.escape(xArgs)
+          dict_part, grammar_part = nil, nil
+          filename                = File.basename(audio_file)
 
-          dictionary_name = File.basename(dictionary)
-          grammar_name = File.basename(grammar)
-          filename = File.basename(audio_file)
-
-          dheaders = {
-            "Content-Disposition" => %(form-data; name="x-dictionary"; filename="#{dictionary_name}"),
-            "Content-Type" => "application/pls+xml"
-          }
-          dict_part = {
-            :headers => dheaders,
-            :data => File.read(dictionary)
-          }
-
-          gheaders = {
-            "Content-Disposition" => %(form-data; name="#{grammar_type}"; filename="#{grammar_name}"),
-            "Content-Type" => "application/srgs+xml"
-          }
-          grammar_part = {
-            :headers => gheaders,
-            :data => File.read(grammar)
-          }
-
+          # setup dictionary header
+          if dictionary
+            dictionary_name = File.basename(dictionary)
+            dheaders = {
+              "Content-Disposition" => %(form-data; name="x-dictionary"; filename="#{dictionary_name}"),
+              "Content-Type" => "application/pls+xml"
+            }
+            dict_part = {
+              :headers => dheaders,
+              :data    => File.read(dictionary)
+            }
+          end
+          
+          # setup grammar header
+          if grammar
+            grammar_name = File.basename(grammar)
+            gheaders = {
+              "Content-Disposition" => %(form-data; name="#{grammar_type}"; filename="#{grammar_name}"),
+              "Content-Type" => "application/srgs+xml"
+            }
+            grammar_part = {
+              :headers => gheaders,
+              :data    => File.read(grammar)
+            }
+          end
+          
+          # setup file header
           mime = CloudService.getMimeType audio_file
           fheaders = {
             "Content-Disposition" =>  %(form-data; name="x-voice"; filename="#{filename}"),
@@ -124,10 +131,10 @@ module Att
           }
           file_part = {
             :headers => fheaders,
-            :data => File.read(audio_file)
+            :data    => File.read(audio_file)
           }
 
-          multipart = [dict_part, grammar_part, file_part]
+          multipart = [dict_part, grammar_part, file_part].reject(&:nil?)
 
           url = "#{@fqdn}#{CUSTOM_SERVICE_URL}"
 
