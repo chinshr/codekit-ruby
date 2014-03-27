@@ -37,17 +37,18 @@ module Att
         #
         # @param file [String] path of file to convert
         # @param opts [Hash] Options hashmap for extra params
-        # @option opts [String] :context meta info on context (default: Generic)
+        # @option opts [String] :speech_context meta info on context (default: Generic)
         # @option opts [String] :xargs custom extra parameters to send for decoding
         # @option opts [Boolean] :chunked set transfter encoding to chunked
         #
         # @return (see speechToText)
         def stdSpeechToText(file, opts={})
           # set to empty string if nil
-          xArgs = (opts[:xargs] || opts[:xarg] || "") 
-          chunked = opts[:chunked]
-          context = (opts[:context] || "Generic")
-          subcontext = opts[:subcontext]
+          xArgs              = opts[:xargs] || opts[:xarg] || ""
+          chunked            = opts[:chunked]
+          speech_context     = opts[:speech_context] || "Generic"
+          speech_sub_context = opts[:speech_sub_context]
+          content_language   = opts[:content_language]
 
           x_arg_val = URI.escape(xArgs)
 
@@ -56,12 +57,13 @@ module Att
           filetype = CloudService.getMimeType file
 
           headers = {
-            :X_arg => "#{x_arg_val}",
-            :X_SpeechContext => "#{context}",
-            :Content_Type => "#{filetype}"
+            :X_arg            => "#{x_arg_val}",
+            :X_SpeechContext  => "#{speech_context}",
+            :Content_Type     => "#{filetype}",
+            :Content_Language => "#{content_language}"
           }
 
-          headers[:X_SpeechSubContext] = subcontext if (subcontext && context == "Gaming")
+          headers[:X_SpeechSubContext] = speech_sub_context if (speech_sub_context && speech_context == "Gaming")
 
           headers[:Content_Transfer_Encoding] = 'chunked' if chunked 
 
@@ -81,7 +83,7 @@ module Att
         # @param dictionary [String] path to dictionary file
         # @param grammar [String] path to grammar file
         # @param opts [Hash] optional parameter hash
-        # @option opts [String] :context The speech context 
+        # @option opts [String] :speech_context The speech context 
         #   (default: GenericHints)
         # @option opts [String] :grammar The type of grammar of the grammar file 
         #   (default: x-grammar)
@@ -90,9 +92,11 @@ module Att
         #
         # @return (see speechToText)
         def customSpeechToText(audio_file, dictionary, grammar, opts={})
-          context                 = (opts[:context] || "GenericHints")
-          grammar_type            = (opts[:grammar] || "x-grammar")
-          xArgs                   = (opts[:xargs] || "")
+          speech_context          = opts[:speech_context] || "GenericHints"
+          grammar_type            = opts[:grammar_type] || "x-grammar"
+          xArgs                   = opts[:xargs] || ""
+          content_language        = opts[:content_language]
+          
           x_arg_val               = URI.escape(xArgs)
           dict_part, grammar_part = nil, nil
           filename                = File.basename(audio_file)
@@ -142,9 +146,10 @@ module Att
           payload = CloudService.generateMultiPart(boundary, multipart)
 
           headers = {
-            :X_arg => "#{x_arg_val}", 
-            :X_SpeechContext => "#{context}", 
-            :Content_Type => %(multipart/x-srgs-audio; boundary="#{boundary}"),
+            :X_arg            => "#{x_arg_val}", 
+            :X_SpeechContext  => "#{speech_context}", 
+            :Content_Type     => %(multipart/x-srgs-audio; boundary="#{boundary}"),
+            :Content_Language => "#{content_language}",
           }
 
           begin
