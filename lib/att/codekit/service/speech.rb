@@ -57,15 +57,13 @@ module Att
           filetype = CloudService.getMimeType file
 
           headers = {
-            :X_arg            => "#{x_arg_val}",
-            :X_SpeechContext  => "#{speech_context}",
-            :Content_Type     => "#{filetype}",
-            :Content_Language => "#{content_language}"
-          }
-
-          headers[:X_SpeechSubContext] = speech_sub_context if (speech_sub_context && speech_context == "Gaming")
-
-          headers[:Content_Transfer_Encoding] = 'chunked' if chunked 
+            "X-Arg"            => "#{x_arg_val}",
+            "X-SpeechContext"  => "#{speech_context}",
+            "Content-Type"     => "#{filetype}",
+            "Content-Language" => "#{content_language}"
+          }.reject {|k,v| v.blank?}
+          headers['X-SpeechSubContext'] = speech_sub_context if (speech_sub_context && speech_context == "Gaming")
+          headers['Transfer-Encoding']  = 'chunked' if chunked 
 
           url = "#{@fqdn}#{STANDARD_SERVICE_URL}"
 
@@ -106,7 +104,7 @@ module Att
             dictionary_name = File.basename(dictionary)
             dheaders = {
               "Content-Disposition" => %(form-data; name="x-dictionary"; filename="#{dictionary_name}"),
-              "Content-Type" => "application/pls+xml"
+              "Content-Type"        => "application/pls+xml"
             }
             dict_part = {
               :headers => dheaders,
@@ -119,7 +117,7 @@ module Att
             grammar_name = File.basename(grammar)
             gheaders = {
               "Content-Disposition" => %(form-data; name="#{grammar_type}"; filename="#{grammar_name}"),
-              "Content-Type" => "application/srgs+xml"
+              "Content-Type"        => "application/srgs+xml"
             }
             grammar_part = {
               :headers => gheaders,
@@ -131,7 +129,7 @@ module Att
           mime = CloudService.getMimeType audio_file
           fheaders = {
             "Content-Disposition" =>  %(form-data; name="x-voice"; filename="#{filename}"),
-            "Content-Type" => %(#{mime}; charset="binary")
+            "Content-Type"        => %(#{mime}; charset="binary")
           }
           file_part = {
             :headers => fheaders,
@@ -146,11 +144,11 @@ module Att
           payload = CloudService.generateMultiPart(boundary, multipart)
 
           headers = {
-            :X_arg            => "#{x_arg_val}", 
-            :X_SpeechContext  => "#{speech_context}", 
-            :Content_Type     => %(multipart/x-srgs-audio; boundary="#{boundary}"),
-            :Content_Language => "#{content_language}",
-          }
+            'X_Arg'            => "#{x_arg_val}", 
+            'X-SpeechContext'  => "#{speech_context}", 
+            'Content-Type'     => %(multipart/x-srgs-audio; boundary="#{boundary}"),
+            'Content-Language' => "#{content_language}",
+          }.reject {|k,v| v.blank?}
 
           begin
             response = self.post(url, payload, headers)
